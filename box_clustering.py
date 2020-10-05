@@ -127,6 +127,22 @@ def visulize_clustering_data(wh):
     fig.savefig('clustering_data.png')
 
 
+def iou(box, clusters):
+    """
+    :param box: np.array of shape (2,) containing w and h
+    :param clusters: np.array of shape (N cluster, 2)
+    :return:
+    """
+    x = np.minimum(clusters[:, 0], box[0])
+    y = np.minimum(clusters[:, 1], box[1])
+    intersection = x * y
+    box_area = x * y
+    cluster_area = clusters[:, 0] * clusters[:, 1]
+
+    iou_ = intersection / (box_area + cluster_area - intersection)
+    return iou_
+
+
 train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
 visualize_lables(seen_train_labels, train_images)
 wh = normalize_bounding_box(train_images)
