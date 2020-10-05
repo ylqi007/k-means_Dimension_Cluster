@@ -1,3 +1,8 @@
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default">
+</script>
+
+$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$
+
 # k-means_Dimension_Cluster
 
 ## Dimension Clusters
@@ -30,7 +35,26 @@ iou的计算公式为:
   
 <img src="https://latex.codecogs.com/gif.latex?\begin{array}{rcl}&space;IoU&space;&=&&space;\frac{intersection}{union-intersection}\\&space;intersection&space;&=&&space;Min(w_{1},w_{2})\cdot&space;Min(h_{1},h_{2})\\&space;union&space;&=&&space;w_{1}h_{1}&plus;w_{2}h_{2}&space;\end{array}" title="\begin{array}{rcl} IoU &=& \frac{intersection}{union-intersection}\\ intersection &=& Min(w_{1},w_{2})\cdot Min(h_{1},h_{2})\\ union &=& w_{1}h_{1}+w_{2}h_{2} \end{array}" />
 
+- [ ] HTML result:          
+<img src="https://latex.codecogs.com/gif.latex?\begin{array}{rcl}&space;IoU&space;&=&&space;\frac{intersection}{union-intersection}\\&space;intersection&space;&=&&space;Min(w_{1},w_{2})\cdot&space;Min(h_{1},h_{2})\\&space;union&space;&=&&space;w_{1}h_{1}&plus;w_{2}h_{2}&space;\end{array}" title="\begin{array}{rcl} IoU &=& \frac{intersection}{union-intersection}\\ intersection &=& Min(w_{1},w_{2})\cdot Min(h_{1},h_{2})\\ union &=& w_{1}h_{1}+w_{2}h_{2} \end{array}" />
+
+![equatoin](https://latex.codecogs.com/gif.latex?\begin{array}{rcl}&space;IoU&space;&=&&space;\frac{intersection}{union-intersection}\\&space;intersection&space;&=&&space;Min(w_{1},w_{2})\cdot&space;Min(h_{1},h_{2})\\&space;union&space;&=&&space;w_{1}h_{1}&plus;w_{2}h_{2}&space;\end{array})
+
+
 h<sub>&theta;</sub>(x) = &theta;<sub>o</sub> x + &theta;<sub>1</sub>x
+
+
+$$x_{1}$$
+
+$$x_1^2$$
+
+$x^2_1$
+
+$$x_{22}^{(n)}?
+
+$${}^*x^*?
+
+$$x_{balabala}^{bala}?
 
 
 ## [box_clustering.py](box_clustering.py)
@@ -40,6 +64,7 @@ h<sub>&theta;</sub>(x) = &theta;<sub>o</sub> x + &theta;<sub>1</sub>x
 
 
 ## Reference:
-[tensorflow-yolov3/docs/Box-Clustering.ipynb ](https://github.com/YunYang1994/tensorflow-yolov3/blob/master/docs/Box-Clustering.ipynb)
-[codecogs](https://www.codecogs.com/latex/eqneditor.php)
+* [tensorflow-yolov3/docs/Box-Clustering.ipynb ](https://github.com/YunYang1994/tensorflow-yolov3/blob/master/docs/Box-Clustering.ipynb)
+* [codecogs](https://www.codecogs.com/latex/eqneditor.php)
+* [How to show math equations in general github's markdown(not github's blog)](https://stackoverflow.com/questions/11256433/how-to-show-math-equations-in-general-githubs-markdownnot-githubs-blog)
 
