@@ -67,6 +67,17 @@ than those with less overlap. This makes Intersection over Union an excellent me
 
 
 ## k-means clustering
+### Statistic and Visualize Labels
+![fig5](statistic_of_labels.png){width=250px}
+
+![<img src="statistic_of_labels.png" width="250" height="100"/>](statistic_of_labels.png)
+
+
+| ![<img src="k-means_Dimension_Cluster/statistic_of_labels.png" width="200">](statistic_of_labels.png) |
+|:---:| 
+| *Figure 5: Statistic of different labels and visualize in bar.* |
+
+
 K-means的聚类方法很简单，它主要包含两个步骤:
 
 首先初始化类别数量和聚类中心:
@@ -75,6 +86,8 @@ K-means的聚类方法很简单，它主要包含两个步骤:
     * Step 2: 使用每个类别簇的均值来作为下次迭代计算的类别中心
     
 重复步骤1和2,直至每个类别的中心位置不再发生变化。
+
+In the dataset VOC2007_Train, there has 15662 objects totally.
 
 ## [box_clustering.py](box_clustering.py)
 * `def parse_annotation(ann_dir, img_dir, labels=[])`

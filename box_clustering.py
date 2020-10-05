@@ -15,8 +15,6 @@ VOC2007_TRAIN = "./DATA/VOC2007/train"
 VOC2007_TRAIN_Images = "./DATA/VOC2007/train/JPEGImages/"  # Since this is a dir, ended with `/`
 VOC2007_TRAIN_Annot = "./DATA/VOC2007/train/Annotations/"
 
-print(os.listdir(VOC2007_TRAIN))
-
 
 def parse_annotation(ann_dir, img_dir, labels=[]):
     """
@@ -184,4 +182,19 @@ train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_
 visualize_lables(seen_train_labels, train_images)
 wh = normalize_bounding_box(train_images)
 visulize_clustering_data(wh=wh)
+
+kmax = 10
+dist = np.mean
+results = {}
+
+for k in range(2, 3):
+    clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
+    WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
+    result = {"clusters": clusters,
+              "nearest_clusters": nearest_clusters,
+              "distances": distances,
+              "WithinClusterMeanDist": WithinClusterMeanDist}
+    print(":2.0f clusters: mean IoU = {:5.4f}".format(k, 1-result["WithinClusterMeanDist"]))
+    results[k] = result
+
 
