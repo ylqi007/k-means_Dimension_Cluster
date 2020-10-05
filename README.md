@@ -20,10 +20,10 @@
 
 ## Intersection over Union(IOU)
 ### What is Intersection over Union?
-    * Intersection over Union (IoU) is an **evaluation metric** used to measure the accuracy of an object detector 
-    on a particular dataset. We often see this evaluation metric used in object detection challenges such as the 
-    popular [PASCAL VOC challenge](https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/)
-    * IoU is simply an **evaluation metric**. Any algorithm that provides predicted bounding boxes as output can be evaluated using IoU.
+* Intersection over Union (IoU) is an **evaluation metric** used to measure the accuracy of an object detector 
+on a particular dataset. We often see this evaluation metric used in object detection challenges such as the 
+popular [PASCAL VOC challenge](https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/)
+* IoU is simply an **evaluation metric**. Any algorithm that provides predicted bounding boxes as output can be evaluated using IoU.
 * In order to apply IoU to evaluate an arbitrary object detector we need:
     1. The **ground-truth bounding boxes** (i.e., the hand labeled bounding boxes from the testing set that specify where in the image our object is).
     2. The **predicted bounding boxes** from our model.

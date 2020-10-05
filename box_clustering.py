@@ -143,6 +143,43 @@ def iou(box, clusters):
     return iou_
 
 
+def kmeans(boxes, k, dist=np.median, seed=1):
+    """
+    Calculate k-means clustering with the IoU metric.
+    :param boxes: numpy array of shape (r, 2), where r is the number of rows
+    :param k: number of clusters.
+    :param dist: distance function
+    :param seed:
+    :return: numpy array of shape (k,2)
+    """
+    rows = boxes.shape[0]
+    distances = np.empty((rows, k))  # N rows x N cluster
+    last_cluster = np.zeros((rows,))
+
+    np.random.seed(seed)
+
+    # Initialize the cluster centers to be k items
+    clusters = boxes[np.random.choice(rows, k, replace=False)]
+
+    while True:
+        # Step 1: allocate each item to the closest cluster centers
+        for icluster in range(k):
+            distances[:, icluster] = 1 - iou(clusters[icluster], boxes)
+
+        nearest_clusters = np.argmin(distances, axis=1)
+
+        if (last_cluster == nearest_clusters).all():
+            break
+
+        # Step 2: Calculate the cluster centers as mean (or median) of all the cases in the clusters
+        for cluster in range(k):
+            clusters[cluster] = dist(boxes[nearest_clusters == cluster], axis=0)
+
+        last_cluster = nearest_clusters
+
+    return clusters, nearest_clusters, distances
+
+
 train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
 visualize_lables(seen_train_labels, train_images)
 wh = normalize_bounding_box(train_images)
