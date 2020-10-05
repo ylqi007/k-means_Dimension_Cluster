@@ -96,10 +96,39 @@ def visualize_lables(seen_labels, train_imgs):
     ax.set_title("The total number of object = {} in {} images".format(
         np.sum(list(seen_labels.values())), len(train_imgs)
     ))
-    fig.savefig('fig1.pdf')
+    fig.savefig('statistic_of_labels.pdf')
     plt.show()
     fig.savefig('statistic_of_labels.png')
 
 
+def normalize_bounding_box(train_images):
+    wh = []     # a list
+    for anno in train_images:
+        aw = float(anno['width'])   # width of an image
+        ah = float(anno['height'])  # height of an image
+        for obj in anno['object']:
+            w = (obj['xmax'] - obj['xmin']) / aw    # make the width range between [0, GRID_W]
+            h = (obj['ymax'] - obj['ymin']) / ah    # make the height range between [0, GRID_H]
+            tmp = [w, h]
+            wh.append(tmp)
+    wh = np.array(wh)
+    print("Clustering feature data is ready. Shape = (N object, width and height) = {}".format(wh.shape))
+    return wh
+
+
+def visulize_clustering_data(wh):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.scatter(wh[:, 0], wh[:, 1], alpha=0.3)
+    ax.set_title("Clusters", fontsize=20)
+    ax.set_xlabel("Normalized width", fontsize=20)
+    ax.set_ylabel("Normalized height", fontsize=20)
+    fig.savefig('clustering_data.pdf')
+    plt.show()
+    fig.savefig('clustering_data.png')
+
+
 train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
 visualize_lables(seen_train_labels, train_images)
+wh = normalize_bounding_box(train_images)
+visulize_clustering_data(wh=wh)
+
