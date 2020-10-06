@@ -204,17 +204,16 @@ def plot_cluster_result(plt, clusters, nearest_clusters, WithinClusterSumDist, w
     fig.savefig("k-means_with_k={}.png".format(k))
 
 
+# Step 1. parse annotations and normalize object sizes
 train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
 visualize_lables(seen_train_labels, train_images)
-# There has no nan in wh
 wh = normalize_bounding_box(train_images)
 visulize_clustering_data(wh=wh)
 
+# Step 2. Do k-means for different k value, i.e. different clusters
 kmax = 10
 dist = np.mean
 results = {}
-
-# Do k-means for different k value, i.e. different clusters
 for k in range(2, kmax):
     clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
@@ -224,7 +223,7 @@ for k in range(2, kmax):
               "WithinClusterMeanDist": WithinClusterMeanDist}
     results[k] = result
 
-
+# Step 3. Visualize k-means results of different k
 figsize = (10, 10)
 for k in range(2, kmax):
     result = results[k]
@@ -235,3 +234,4 @@ for k in range(2, kmax):
     plt.rc('font', size=8)
     plot_cluster_result(plt, clusters, nearest_clusters, 1 - WithinClusterMeanDist, wh, k)
     plt.show()
+

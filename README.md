@@ -18,7 +18,7 @@
 > box 的尺寸进行聚类。因此，有必要标准化 bounding box 的宽度和高度与 image 的宽度和高度。
 
 
-## Intersection over Union(IOU)
+## Intersection over Union(IoU)
 ### What is Intersection over Union?
 * Intersection over Union (IoU) is an **evaluation metric** used to measure the accuracy of an object detector 
 on a particular dataset. We often see this evaluation metric used in object detection challenges such as the 
@@ -76,17 +76,13 @@ than those with less overlap. This makes Intersection over Union an excellent me
 ### Visualize Clustering data
 | ![fig6](clustering_data.png) |
 |:---:| 
-| *Figure 6: View of clustering dadta.* |
+| *Figure 6: View of clustering data.* |
 * The x and y axies are normalized.
 * In the left bottom corner, the density is high, which means that there have lots of points in that size region.
 * There have some points in the top and right boundaries, which means that there have some objects have the same height
 or width with its corresponding image. 
 
 ### k-means
-1. Preprocess input:            
-After normalization, there is no `nan` in `wh`.
-
-
 K-means的聚类方法很简单，它主要包含两个步骤:
 
 首先初始化类别数量和聚类中心:
@@ -98,11 +94,23 @@ K-means的聚类方法很简单，它主要包含两个步骤:
 
 In the dataset VOC2007_Train, there has 15662 objects totally.
 
-## [box_clustering.py](box_clustering.py)
-* `def parse_annotation(ann_dir, img_dir, labels=[])`
-* `def visualize_lables(seen_labels, train_imgs)`
+### Visualize Results
+| ![fig7](k-means_with_k=5.png) |
+|:---:| 
+| *Figure 7: View of k-means result with k=5.* |
+* From the above figure, all objects (i.e. 15662 objects) are divided into 5 clusters, from `c0` to `c4`.
+* Each cluster has a center which is also a box represented by `c` and the size of this center box is `x` and `y` axis 
+of the `c`(i.e. `c1`, `c2`, ...).
+
+### Usage [box_clustering.py](box_clustering.py)
+* Run `box_clustering.py`
+* The default `box_clustering.py` do k-means on training set of VOC2007. And this can be set to different dataset.
 
 
+## Notes
+1. This k-means just cluster all objects, therefore use equations from [Figure 3](https://farm8.staticflickr.com/7813/46412972842_6d2af063e9_h.jpg).
+2. In real evaluation, the ground truth bounding box and predicted bounding box ususlly have different top left corner. 
+Therefore, the equations from [Figure 3](https://farm8.staticflickr.com/7813/46412972842_6d2af063e9_h.jpg) may not usable.
 
 ## Reference:
 * [tensorflow-yolov3/docs/Box-Clustering.ipynb ](https://github.com/YunYang1994/tensorflow-yolov3/blob/master/docs/Box-Clustering.ipynb)
