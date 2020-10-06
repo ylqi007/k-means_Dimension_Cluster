@@ -68,14 +68,23 @@ than those with less overlap. This makes Intersection over Union an excellent me
 
 ## k-means clustering
 ### Statistic and Visualize Labels
-![fig5](statistic_of_labels.png){width=250px}
-
-![<img src="statistic_of_labels.png" width="250" height="100"/>](statistic_of_labels.png)
-
-
-| ![<img src="k-means_Dimension_Cluster/statistic_of_labels.png" width="200">](statistic_of_labels.png) |
+| ![fig5](statistic_of_labels.png) |
 |:---:| 
 | *Figure 5: Statistic of different labels and visualize in bar.* |
+* From the above figure, it shows the statistic of different classes.
+
+### Visualize Clustering data
+| ![fig6](clustering_data.png) |
+|:---:| 
+| *Figure 6: View of clustering dadta.* |
+* The x and y axies are normalized.
+* In the left bottom corner, the density is high, which means that there have lots of points in that size region.
+* There have some points in the top and right boundaries, which means that there have some objects have the same height
+or width with its corresponding image. 
+
+### k-means
+1. Preprocess input:            
+After normalization, there is no `nan` in `wh`.
 
 
 K-means的聚类方法很简单，它主要包含两个步骤:

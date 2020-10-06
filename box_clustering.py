@@ -2,6 +2,8 @@ import os
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+current_palette = list(sns.xkcd_rgb.values())
 import cv2
 
 # Labels of VOC
@@ -125,47 +127,51 @@ def visulize_clustering_data(wh):
     fig.savefig('clustering_data.png')
 
 
-def iou(box, clusters):
+def iou(cluster, boxes):
     """
-    :param box: np.array of shape (2,) containing w and h
-    :param clusters: np.array of shape (N cluster, 2)
+    Calculate distance between boxes with the specific cluster center.
+    :param cluster: np.array of shape (2,) containing w and h, i.e. the centroid of a cluster
+    :param boxes: np.array of shape (N boxes, 2)
     :return:
     """
-    x = np.minimum(clusters[:, 0], box[0])
-    y = np.minimum(clusters[:, 1], box[1])
-    intersection = x * y
-    box_area = x * y
-    cluster_area = clusters[:, 0] * clusters[:, 1]
+    x = np.minimum(cluster[0], boxes[:, 0])
+    y = np.minimum(cluster[1], boxes[:, 1])
 
-    iou_ = intersection / (box_area + cluster_area - intersection)
+    intersection = x * y
+    cluster_area = cluster[0] * cluster[1]
+    boxes_area = boxes[:, 0] * boxes[:, 1]
+
+    iou_ = intersection / (cluster_area + boxes_area - intersection)
     return iou_
 
 
 def kmeans(boxes, k, dist=np.median, seed=1):
     """
     Calculate k-means clustering with the IoU metric.
-    :param boxes: numpy array of shape (r, 2), where r is the number of rows
+    :param boxes: numpy array of shape (r, 2), where r is the number of rows, i.e. number of objects
     :param k: number of clusters.
     :param dist: distance function
     :param seed:
-    :return: numpy array of shape (k,2)
+    :return: numpy array of shape (k, 2), i.e. k clusters, and each cluster is a (w,h) boxes
+        - clusters: the centers of each cluster
+        - nearest_clusters: the center index of each box
+        - distances: the distance of each box to its cluster center
     """
-    rows = boxes.shape[0]
-    distances = np.empty((rows, k))  # N rows x N cluster
+    rows = boxes.shape[0]   # i.e. the amount of objects
+
+    distances = np.zeros((rows, k))  # N rows x k cluster, distance between each point to its center
     last_cluster = np.zeros((rows,))
 
     np.random.seed(seed)
 
     # Initialize the cluster centers to be k items
-    clusters = boxes[np.random.choice(rows, k, replace=False)]
-
+    clusters = boxes[np.random.choice(rows, k, replace=False)]  # Randomly choose k boxes as initial cluster center
     while True:
         # Step 1: allocate each item to the closest cluster centers
         for icluster in range(k):
-            distances[:, icluster] = 1 - iou(clusters[icluster], boxes)
+            distances[:, icluster] = 1 - iou(clusters[icluster], boxes) # distance to i-th cluster
 
-        nearest_clusters = np.argmin(distances, axis=1)
-
+        nearest_clusters = np.argmin(distances, axis=1)     # (15662,)
         if (last_cluster == nearest_clusters).all():
             break
 
@@ -178,8 +184,29 @@ def kmeans(boxes, k, dist=np.median, seed=1):
     return clusters, nearest_clusters, distances
 
 
+def plot_cluster_result(plt, clusters, nearest_clusters, WithinClusterSumDist, wh, k):
+    fig, ax = plt.subplots(figsize=figsize)
+    for icluster in np.unique(nearest_clusters):
+        pick = (nearest_clusters == icluster)
+        c = current_palette[icluster]
+        ax.plot(wh[pick, 0], wh[pick, 1],
+                "p", color=c, alpha=0.5,
+                label="cluster = {}, N = {:6.0f}".format(icluster, np.sum(pick)))
+        ax.text(clusters[icluster, 0],
+                clusters[icluster, 1],
+                "c{}\n({:3.2f}, {:3.2f})".format(icluster, clusters[icluster, 0], clusters[icluster, 1]),
+                fontsize=20,
+                color="red")
+    ax.set_title("Clusters = %d" % k)
+    ax.set_xlabel("Normalized width")
+    ax.set_ylabel("Normalized height")
+    ax.legend(title="Mean IoU = {:5.4f}".format(WithinClusterMeanDist))
+    fig.savefig("k-means_with_k={}.png".format(k))
+
+
 train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
 visualize_lables(seen_train_labels, train_images)
+# There has no nan in wh
 wh = normalize_bounding_box(train_images)
 visulize_clustering_data(wh=wh)
 
@@ -187,14 +214,24 @@ kmax = 10
 dist = np.mean
 results = {}
 
-for k in range(2, 3):
+# Do k-means for different k value, i.e. different clusters
+for k in range(2, kmax):
     clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
     result = {"clusters": clusters,
               "nearest_clusters": nearest_clusters,
               "distances": distances,
               "WithinClusterMeanDist": WithinClusterMeanDist}
-    print(":2.0f clusters: mean IoU = {:5.4f}".format(k, 1-result["WithinClusterMeanDist"]))
     results[k] = result
 
 
+figsize = (10, 10)
+for k in range(2, kmax):
+    result = results[k]
+    clusters = result["clusters"]
+    nearest_clusters = result["nearest_clusters"]
+    WithinClusterMeanDist = result["WithinClusterMeanDist"]
+
+    plt.rc('font', size=8)
+    plot_cluster_result(plt, clusters, nearest_clusters, 1 - WithinClusterMeanDist, wh, k)
+    plt.show()
