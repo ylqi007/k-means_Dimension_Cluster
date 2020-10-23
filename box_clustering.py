@@ -131,15 +131,15 @@ def normalize_bounding_box(images):
     return wh
 
 
-def visulize_clustering_data(wh):
+def visulize_clustering_data(wh, file_name):
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.scatter(wh[:, 0], wh[:, 1], alpha=0.3)
     ax.set_title("Clusters", fontsize=20)
     ax.set_xlabel("Normalized width", fontsize=20)
     ax.set_ylabel("Normalized height", fontsize=20)
-    fig.savefig('UNT_clustering_data.pdf')
+    # fig.savefig('UNT_clustering_data.pdf')
     plt.show()
-    fig.savefig('UNT_clustering_data.png')
+    fig.savefig(file_name)
 
 
 def iou(cluster, boxes):
@@ -320,8 +320,9 @@ def k_means_on_Dataset(dataset, output_dir):
 
     # Step 3. Normalize bboxes and visualize
     print("Step 3. normalize bounding boxes of each object and visualize")
+    file_name = output_dir + "{}_Dataset_Visualization.png".format(dataset.NAME)
     wh = normalize_bounding_box(train_images)
-    visulize_clustering_data(wh=wh)
+    visulize_clustering_data(wh=wh, file_name=file_name)
 
     # Step 4. Do k-means for different k value, i.e. different clusters
     print("Step 4. Do k-means for different k value, i.e. different clusters")
@@ -356,4 +357,4 @@ def k_means_on_Dataset(dataset, output_dir):
 
 
 if __name__ == "__main__":
-    k_means_on_Dataset(UNT, OUTPUT_DIR + "UNT/")
+    k_means_on_Dataset(VOC, OUTPUT_DIR + "VOC/")

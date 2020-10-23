@@ -71,9 +71,10 @@ than those with less overlap. This makes Intersection over Union an excellent me
 * From the above figure, it shows the statistic of different classes.
 
 ### Visualize Clustering data
-| ![fig6](data/VOC/clustering_labels.png) |
+| ![fig6](data/VOC/VOC2007_Dataset_Visualization.png) |
 |:---:|
 | *Figure 6: View of clustering data.* |
+
 * The x and y axies are normalized.
 * In the left bottom corner, the density is high, which means that there have lots of points in that size region.
 * There have some points in the top and right boundaries, which means that there have some objects have the same height
