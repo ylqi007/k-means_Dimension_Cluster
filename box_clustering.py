@@ -1,24 +1,22 @@
+"""
+https://github.com/YunYang1994/tensorflow-yolov3/blob/master/docs/Box-Clustering.ipynb
+"""
 import os
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 current_palette = list(sns.xkcd_rgb.values())
-import cv2
-
-# Labels of VOC
-LABELS = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
-          'bus', 'car', 'cat', 'chair', 'cow',
-          'diningtable', 'dog', 'horse', 'motorbike', 'person',
-          'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
-
-# VOC Dataset directory
-VOC2007_TRAIN = "./DATA/VOC2007/train"
-VOC2007_TRAIN_Images = "./DATA/VOC2007/train/JPEGImages/"  # Since this is a dir, ended with `/`
-VOC2007_TRAIN_Annot = "./DATA/VOC2007/train/Annotations/"
 
 
-def parse_annotation(ann_dir, img_dir, labels=[]):
+from UNT import UNT
+from VOC import VOC
+
+OUTPUT_DIR = "./data/"
+FIG_SIZE = (10, 10)
+
+
+def parse_annotation(ann_dir, img_dir, labels, dataset_name):
     """
     :param ann_dir:
     :param img_dir:
@@ -38,23 +36,40 @@ def parse_annotation(ann_dir, img_dir, labels=[]):
     """
     all_imgs = []
     seen_labels = {}
-    for ann in sorted(os.listdir(ann_dir)):
+    for ann in sorted(os.listdir(ann_dir)):     # Iterate over all annotations
+        # img["filename"], i.e path to image
+        # img["width"], img["height"], i.e. the size of image
+        # img["object"] is a list of objs,
+        #   obj["name"], the name of this object
+        #   obj["xmin"], obj["ymin"], obj["xmax"], obj["ymax"]
         if "xml" not in ann:
             continue
-        img = {'object': []}
-        # print(ann_dir + ann)
+        img = {'object': []}    # info of an image
 
         tree = ET.parse(ann_dir + ann)
+        folder = ""
         for elem in tree.iter():
+            # Step 1. Get image path.
+            if 'folder' in elem.tag:    # folder is only needed in UNT Aerial Dataset.
+                folder = elem.text
             if 'filename' in elem.tag:
-                path_to_image = img_dir + elem.text
+                if dataset_name == "UNT_Aerial_Dataset":
+                    path_to_image = img_dir + folder + '_' + elem.text
+                elif dataset_name == "VOC2007":
+                    path_to_image = img_dir + elem.text
+                else:
+                    raise ValueError("Not acceptable dataset!")
                 img['filename'] = path_to_image
                 if not os.path.exists(path_to_image):
                     assert False, "File does not exist!\n{}".format(path_to_image)
+
+            # Step 2. Get image size.
             if 'width' in elem.tag:     # image width
                 img['width'] = int(elem.text)
             if 'height' in elem.tag:    # image height
                 img['height'] = int(elem.text)
+
+            # Step 3. Object class and its bounding box
             if 'object' in elem.tag or 'part' in elem.tag:
                 obj = {}    # Info of one object
                 for attr in list(elem):
@@ -82,12 +97,12 @@ def parse_annotation(ann_dir, img_dir, labels=[]):
                                 obj['ymax'] = int(round(float(dim.text)))
 
         if len(img['object']) > 0:  # if there has at least one object in current annotation file
-            all_imgs += [img]
+            all_imgs += [img]       # Only consider images with at least one object.
 
     return all_imgs, seen_labels
 
 
-def visualize_lables(seen_labels, train_imgs):
+def visualize_lables(seen_labels, train_imgs, output_dir):
     y_pos = np.arange(len(seen_labels))
     fig, ax = plt.subplots(figsize=(13, 10))
     ax.barh(y_pos, list(seen_labels.values()))
@@ -96,23 +111,23 @@ def visualize_lables(seen_labels, train_imgs):
     ax.set_title("The total number of object = {} in {} images".format(
         np.sum(list(seen_labels.values())), len(train_imgs)
     ))
-    fig.savefig('statistic_of_labels.pdf')
+    # fig.savefig(output_dir + 'statistic_of_labels.pdf')
     plt.show()
-    fig.savefig('statistic_of_labels.png')
+    fig.savefig(output_dir + 'statistic_of_labels.png')
 
 
-def normalize_bounding_box(train_images):
+def normalize_bounding_box(images):
     wh = []     # a list
-    for anno in train_images:
-        aw = float(anno['width'])   # width of an image
-        ah = float(anno['height'])  # height of an image
-        for obj in anno['object']:
+    for img in images:
+        aw = float(img['width'])   # width of an image
+        ah = float(img['height'])  # height of an image
+        for obj in img['object']:
             w = (obj['xmax'] - obj['xmin']) / aw    # make the width range between [0, GRID_W]
             h = (obj['ymax'] - obj['ymin']) / ah    # make the height range between [0, GRID_H]
             tmp = [w, h]
             wh.append(tmp)
     wh = np.array(wh)
-    print("Clustering feature data is ready. Shape = (N object, width and height) = {}".format(wh.shape))
+    print("The bboxes are normalized. Shape = (N object, width and height) = {}".format(wh.shape))
     return wh
 
 
@@ -122,9 +137,9 @@ def visulize_clustering_data(wh):
     ax.set_title("Clusters", fontsize=20)
     ax.set_xlabel("Normalized width", fontsize=20)
     ax.set_ylabel("Normalized height", fontsize=20)
-    fig.savefig('clustering_data.pdf')
+    fig.savefig('UNT_clustering_data.pdf')
     plt.show()
-    fig.savefig('clustering_data.png')
+    fig.savefig('UNT_clustering_data.png')
 
 
 def iou(cluster, boxes):
@@ -168,24 +183,23 @@ def kmeans(boxes, k, dist=np.median, seed=1):
     clusters = boxes[np.random.choice(rows, k, replace=False)]  # Randomly choose k boxes as initial cluster center
     while True:
         # Step 1: allocate each item to the closest cluster centers
-        for icluster in range(k):
-            distances[:, icluster] = 1 - iou(clusters[icluster], boxes) # distance to i-th cluster
+        for cluster_id in range(k):
+            distances[:, cluster_id] = 1 - iou(clusters[cluster_id], boxes) # distance to i-th cluster center
 
         nearest_clusters = np.argmin(distances, axis=1)     # (15662,)
         if (last_cluster == nearest_clusters).all():
             break
 
         # Step 2: Calculate the cluster centers as mean (or median) of all the cases in the clusters
-        for cluster in range(k):
-            clusters[cluster] = dist(boxes[nearest_clusters == cluster], axis=0)
+        for cluster_id in range(k):    # dist = np.median
+            clusters[cluster_id] = dist(boxes[nearest_clusters == cluster_id], axis=0)  # (N, 2) --> (2),
 
         last_cluster = nearest_clusters
-
     return clusters, nearest_clusters, distances
 
 
-def plot_cluster_result(plt, clusters, nearest_clusters, WithinClusterSumDist, wh, k):
-    fig, ax = plt.subplots(figsize=figsize)
+def plot_cluster_result(plt, clusters, nearest_clusters, withinClusterSumDist, wh, k, output_dir):
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     for icluster in np.unique(nearest_clusters):
         pick = (nearest_clusters == icluster)
         c = current_palette[icluster]
@@ -200,38 +214,146 @@ def plot_cluster_result(plt, clusters, nearest_clusters, WithinClusterSumDist, w
     ax.set_title("Clusters = %d" % k)
     ax.set_xlabel("Normalized width")
     ax.set_ylabel("Normalized height")
-    ax.legend(title="Mean IoU = {:5.4f}".format(WithinClusterMeanDist))
-    fig.savefig("k-means_with_k={}.png".format(k))
+    ax.legend(title="Mean IoU = {:5.4f}".format(withinClusterSumDist))
+    fig.savefig(output_dir + "k-means_with_k={}.png".format(k))
 
+
+def resToString(res):
+    res = ""
+    for k in res:
+        res += (k + ":" + res[k]) + "\n";
 
 # Step 1. parse annotations and normalize object sizes
-train_images, seen_train_labels = parse_annotation(VOC2007_TRAIN_Annot, VOC2007_TRAIN_Images, labels=LABELS)
-visualize_lables(seen_train_labels, train_images)
-wh = normalize_bounding_box(train_images)
-visulize_clustering_data(wh=wh)
+# train_images, seen_train_labels = parse_annotation(VOC.VOC2007_TRAIN_Annot, VOC.VOC2007_TRAIN_Images, labels=VOC.LABELS)
+# train_images, seen_train_labels = parse_annotation(UNT.Annos, UNT.Images, labels=UNT.LABELS)
+# # visualize_lables(seen_train_labels, train_images)
+# wh = normalize_bounding_box(train_images)
+# visulize_clustering_data(wh=wh)
+#
+# # Step 2. Do k-means for different k value, i.e. different clusters
+# kmax = 10
+# dist = np.mean
+# results = {}
+# for k in range(2, kmax):
+#     clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
+#     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
+#     result = {"clusters": clusters,
+#               "nearest_clusters": nearest_clusters,
+#               "distances": distances,
+#               "WithinClusterMeanDist": WithinClusterMeanDist}
+#     results[k] = result
+#
+# # Step 3. Visualize k-means results of different k
+# figsize = (10, 10)
+# for k in range(2, kmax):
+#     result = results[k]
+#     clusters = result["clusters"]
+#     nearest_clusters = result["nearest_clusters"]
+#     WithinClusterMeanDist = result["WithinClusterMeanDist"]
 
-# Step 2. Do k-means for different k value, i.e. different clusters
-kmax = 10
-dist = np.mean
-results = {}
-for k in range(2, kmax):
-    clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
-    WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
-    result = {"clusters": clusters,
-              "nearest_clusters": nearest_clusters,
-              "distances": distances,
-              "WithinClusterMeanDist": WithinClusterMeanDist}
-    results[k] = result
+    # plt.rc('font', size=8)
+    # plot_cluster_result(plt, clusters, nearest_clusters, 1 - WithinClusterMeanDist, wh, k)
+    # plt.show()
 
-# Step 3. Visualize k-means results of different k
-figsize = (10, 10)
-for k in range(2, kmax):
-    result = results[k]
-    clusters = result["clusters"]
-    nearest_clusters = result["nearest_clusters"]
-    WithinClusterMeanDist = result["WithinClusterMeanDist"]
+#
+# for k in range(2, kmax):
+#     print('k = {:d}'.format(k))
+#     print(results[k]["clusters"])
+#
+# scales = [8, 16, 32]
+# filename = 'UNT_Aerial_Dataset_Box_Clustering.txt'
+# with open(filename, 'w') as f:  # 如果filename不存在会自动创建， 'w'表示写数据，写之前会清空文件中的原有数据！
+#     for key in results:
+#         f.write("k = " + str(key) + '\n')
+#         for anchor in results[key]["clusters"]:
+#             f.write("{:4f},{:4f},".format(anchor[0], anchor[1]))
+#         if key == 3:
+#             f.write("\n")
+#             for anchor in results[key]["clusters"]:
+#                 for i in range(3):
+#                     f.write("{:4f},{:4f},".format(anchor[0] * scales[i], anchor[1] * scales[i]))
+#         f.write("\n")
+        # f.write("clusters:\n" + results[key]["clusters"])
+        # # f.write("nearest_clusters:\n" + results[key]["nearest_clusters"])
+        # # f.write("distance:\n" + results[key]["distance"])
+        # f.write("WithinClusterMeanDist:\n" + results[key]["WithinClusterMeanDist"])
+        # f.write("\n")
 
-    plt.rc('font', size=8)
-    plot_cluster_result(plt, clusters, nearest_clusters, 1 - WithinClusterMeanDist, wh, k)
-    plt.show()
 
+def write_to_file(results, scales, file_name, output_dir):
+    file_name = output_dir + file_name
+    with open(file_name, 'w') as f: # 如果filename不存在会自动创建， 'w'表示写数据，写之前会清空文件中的原有数据！
+        for k in results:
+            f.write("k = {}\n".format(k))
+            for anchor in results[k]["clusters"]:
+                f.write("{:4f},{:4f},".format(anchor[0], anchor[1]))
+            if k == 3:
+                f.write("\n")
+                for anchor in results[k]["clusters"]:
+                    for i in range(3):
+                        f.write("{:4f},{:4f},".format(anchor[0] * scales[i], anchor[1] * scales[i]))
+            f.write("\n")
+            # f.write("clusters:\n" + results[k]["clusters"])
+            # f.write("nearest_clusters:\n" + results[k]["nearest_clusters"])
+            # f.write("distance:\n" + results[k]["distance"])
+            # f.write("WithinClusterMeanDist:\n" + results[k]["WithinClusterMeanDist"])
+            # f.write("\n")
+
+
+def k_means_on_Dataset(dataset, output_dir):
+    """
+    :param anno_dir: annotation folder dir
+    :param img_dir: image folder dir
+    :param dataset: dataset type, VOC or UNT
+    :param output_dir:
+    :return:
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    # Step 1. parse annotations and normalize object sizes
+    print("Step 1. parse annotations and normalize object sizes")
+    train_images, seen_train_labels = parse_annotation(dataset.Annos_dir, dataset.Images_dir, dataset.LABELS, dataset.NAME)
+
+    # Step 2. Visualize labels
+    print("Step 2. statistic and visualize labels")
+    visualize_lables(seen_train_labels, train_images, output_dir)
+
+    # Step 3. Normalize bboxes and visualize
+    print("Step 3. normalize bounding boxes of each object and visualize")
+    wh = normalize_bounding_box(train_images)
+    visulize_clustering_data(wh=wh)
+
+    # Step 4. Do k-means for different k value, i.e. different clusters
+    print("Step 4. Do k-means for different k value, i.e. different clusters")
+    kmax = 10
+    dist = np.mean
+    results = {}
+    for k in range(2, kmax):
+        clusters, nearest_clusters, distances = kmeans(wh, k, dist=dist, seed=2)
+        WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
+        result = {"clusters": clusters,
+                  "nearest_clusters": nearest_clusters,
+                  "distances": distances,
+                  "WithinClusterMeanDist": WithinClusterMeanDist}
+        results[k] = result
+
+    # Step 5. Visualize k-means results of different k
+    print("Step 5. Visualize k-means results of different k")
+    for k in range(2, kmax):
+        result = results[k]
+        clusters = result["clusters"]
+        nearest_clusters = result["nearest_clusters"]
+        withinClusterMeanDist = result["WithinClusterMeanDist"]
+
+        plt.rc('font', size=8)
+        plot_cluster_result(plt, clusters, nearest_clusters, 1 - withinClusterMeanDist, wh, k, output_dir)
+        plt.show()
+
+    # Step 6. Write the whole results into a file
+    scales = [8, 16, 32]
+    file_name = "{}_Dataset_Clustering_Results.txt".format(dataset.NAME)
+    write_to_file(results, scales, file_name, output_dir)
+
+
+if __name__ == "__main__":
+    k_means_on_Dataset(UNT, OUTPUT_DIR + "UNT/")

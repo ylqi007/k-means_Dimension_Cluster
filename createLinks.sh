@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Destination directory of datasets
-DATA=/home/ylqi007/work/PyCharm_Projects/DATA
+DATA=/home/ylqi007/work/DATA
 
 # ln -s [OPTIONS] FILE LINK
 ln -s ${DATA} .
