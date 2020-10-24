@@ -11,6 +11,7 @@ current_palette = list(sns.xkcd_rgb.values())
 
 from UNT import UNT
 from VOC import VOC
+from COCO import COCO
 
 OUTPUT_DIR = "./data/"
 FIG_SIZE = (10, 10)
@@ -99,6 +100,49 @@ def parse_annotation(ann_dir, img_dir, labels, dataset_name):
         if len(img['object']) > 0:  # if there has at least one object in current annotation file
             all_imgs += [img]       # Only consider images with at least one object.
 
+    return all_imgs, seen_labels
+
+
+def parse_annotation_coco(anno_dir, labels, dataset_name):
+    """
+
+    :param anno_dir:
+    :param labels:
+    :param dataset_name:
+    :return:
+    """
+    # TODO: name
+    # TODO: width + height
+    if not os.path.exists(anno_dir):
+        raise ValueError("Annotation file doest not exits.")
+    all_imgs = []
+    seen_labels = {}
+    with open(anno_dir, 'r') as f:
+        data = f.readlines()
+        img = {"object": []}
+        for anno in data:
+            line = anno.split()
+            img['filename'] = line[0]
+            size = line[1].split(",")
+            img["width"] = int(size[0])
+            img["height"] = int(size[1])
+
+            bboxes = np.array([list(map(lambda x: int(float(x)), box.split(','))) for box in line[2:]])
+            for bbox in bboxes:
+                obj = {}
+                obj["name"] = COCO.LABELS[int(bbox[4])]
+                obj["xmin"] = bbox[0]
+                obj["ymin"] = bbox[1]
+                obj["xmax"] = bbox[2]
+                obj["ymax"] = bbox[3]
+                img["object"] += [obj]
+
+                if obj['name'] in seen_labels:
+                    seen_labels[obj['name']] += 1
+                else:
+                    seen_labels[obj['name']] = 1
+        if len(img["object"]) > 0:
+            all_imgs += [img]
     return all_imgs, seen_labels
 
 
@@ -223,62 +267,6 @@ def resToString(res):
     for k in res:
         res += (k + ":" + res[k]) + "\n";
 
-# Step 1. parse annotations and normalize object sizes
-# train_images, seen_train_labels = parse_annotation(VOC.VOC2007_TRAIN_Annot, VOC.VOC2007_TRAIN_Images, labels=VOC.LABELS)
-# train_images, seen_train_labels = parse_annotation(UNT.Annos, UNT.Images, labels=UNT.LABELS)
-# # visualize_lables(seen_train_labels, train_images)
-# wh = normalize_bounding_box(train_images)
-# visulize_clustering_data(wh=wh)
-#
-# # Step 2. Do k-means for different k value, i.e. different clusters
-# kmax = 10
-# dist = np.mean
-# results = {}
-# for k in range(2, kmax):
-#     clusters, nearest_clusters, distances = kmeans(wh, k, seed=2, dist=dist)
-#     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
-#     result = {"clusters": clusters,
-#               "nearest_clusters": nearest_clusters,
-#               "distances": distances,
-#               "WithinClusterMeanDist": WithinClusterMeanDist}
-#     results[k] = result
-#
-# # Step 3. Visualize k-means results of different k
-# figsize = (10, 10)
-# for k in range(2, kmax):
-#     result = results[k]
-#     clusters = result["clusters"]
-#     nearest_clusters = result["nearest_clusters"]
-#     WithinClusterMeanDist = result["WithinClusterMeanDist"]
-
-    # plt.rc('font', size=8)
-    # plot_cluster_result(plt, clusters, nearest_clusters, 1 - WithinClusterMeanDist, wh, k)
-    # plt.show()
-
-#
-# for k in range(2, kmax):
-#     print('k = {:d}'.format(k))
-#     print(results[k]["clusters"])
-#
-# scales = [8, 16, 32]
-# filename = 'UNT_Aerial_Dataset_Box_Clustering.txt'
-# with open(filename, 'w') as f:  # 如果filename不存在会自动创建， 'w'表示写数据，写之前会清空文件中的原有数据！
-#     for key in results:
-#         f.write("k = " + str(key) + '\n')
-#         for anchor in results[key]["clusters"]:
-#             f.write("{:4f},{:4f},".format(anchor[0], anchor[1]))
-#         if key == 3:
-#             f.write("\n")
-#             for anchor in results[key]["clusters"]:
-#                 for i in range(3):
-#                     f.write("{:4f},{:4f},".format(anchor[0] * scales[i], anchor[1] * scales[i]))
-#         f.write("\n")
-        # f.write("clusters:\n" + results[key]["clusters"])
-        # # f.write("nearest_clusters:\n" + results[key]["nearest_clusters"])
-        # # f.write("distance:\n" + results[key]["distance"])
-        # f.write("WithinClusterMeanDist:\n" + results[key]["WithinClusterMeanDist"])
-        # f.write("\n")
-
 
 def write_to_file(results, scales, file_name, output_dir):
     file_name = output_dir + file_name
@@ -312,7 +300,10 @@ def k_means_on_Dataset(dataset, output_dir):
         os.makedirs(output_dir)
     # Step 1. parse annotations and normalize object sizes
     print("Step 1. parse annotations and normalize object sizes")
-    train_images, seen_train_labels = parse_annotation(dataset.Annos_dir, dataset.Images_dir, dataset.LABELS, dataset.NAME)
+    if dataset.NAME == "COCO2017":
+        train_images, seen_train_labels = parse_annotation_coco(dataset.Annos_dir, dataset.LABELS, dataset.NAME)
+    else:
+        train_images, seen_train_labels = parse_annotation(dataset.Annos_dir, dataset.Images_dir, dataset.LABELS, dataset.NAME)
 
     # Step 2. Visualize labels
     print("Step 2. statistic and visualize labels")
@@ -322,6 +313,9 @@ def k_means_on_Dataset(dataset, output_dir):
     print("Step 3. normalize bounding boxes of each object and visualize")
     file_name = output_dir + "{}_Dataset_Visualization.png".format(dataset.NAME)
     wh = normalize_bounding_box(train_images)
+    statistic_2D_to_1D(wh)
+
+    # pass
     visulize_clustering_data(wh=wh, file_name=file_name)
 
     # Step 4. Do k-means for different k value, i.e. different clusters
@@ -356,5 +350,36 @@ def k_means_on_Dataset(dataset, output_dir):
     write_to_file(results, scales, file_name, output_dir)
 
 
+def read_classes(filename):
+    if not os.path.exists(filename):
+        raise ValueError("Annotation file does not exits.")
+    classes = []
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            classes += [line.strip('\n')]
+    return classes
+
+# =========================================================================== #
+# Statistic
+# 2D to 1D: area, width, height
+# =========================================================================== #
+def statistic_2D_to_1D(wh):
+    area = wh[:, 0] * wh[:, 1]
+    print(area[:5])
+    print(wh[:5])
+    plt.hist(wh[:, 0], bins=np.arange(0, 1, 0.1))
+    plt.title("histogram")
+    plt.show()
+
+
+# =========================================================================== #
 if __name__ == "__main__":
-    k_means_on_Dataset(VOC, OUTPUT_DIR + "VOC/")
+    k_means_on_Dataset(COCO, OUTPUT_DIR + "COCO/")
+
+    # TODO
+    # imgs, seen_labels = parse_annotation_coco(COCO.Annos_dir, COCO.LABELS, COCO.NAME)
+    # print(seen_labels)
+    # Readl COCO classes
+    # classes = read_classes("./DATA/coco.names")
+    # print(classes)

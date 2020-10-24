@@ -1,3 +1,11 @@
+[TOC]
+
+# 20201023
+- [x] 1. COCO, without class names, width, height
+- [x] 2. uitls.fun to get anmes
+- [x] 3. how to add width and height
+
+
 ```
 Step 1. parse annotations and normalize object sizes
 <class 'list'> 5011
