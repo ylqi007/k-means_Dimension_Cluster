@@ -259,6 +259,7 @@ def plot_cluster_result(plt, clusters, nearest_clusters, withinClusterSumDist, w
     ax.set_xlabel("Normalized width")
     ax.set_ylabel("Normalized height")
     ax.legend(title="Mean IoU = {:5.4f}".format(withinClusterSumDist))
+
     fig.savefig(output_dir + "k-means_with_k={}.png".format(k))
 
 
@@ -313,41 +314,41 @@ def k_means_on_Dataset(dataset, output_dir):
     print("Step 3. normalize bounding boxes of each object and visualize")
     file_name = output_dir + "{}_Dataset_Visualization.png".format(dataset.NAME)
     wh = normalize_bounding_box(train_images)
-    statistic_2D_to_1D(wh)
+    statistic_2D_to_1D(wh, output_dir)
 
     # pass
-    visulize_clustering_data(wh=wh, file_name=file_name)
-
-    # Step 4. Do k-means for different k value, i.e. different clusters
-    print("Step 4. Do k-means for different k value, i.e. different clusters")
-    kmax = 10
-    dist = np.mean
-    results = {}
-    for k in range(2, kmax):
-        clusters, nearest_clusters, distances = kmeans(wh, k, dist=dist, seed=2)
-        WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
-        result = {"clusters": clusters,
-                  "nearest_clusters": nearest_clusters,
-                  "distances": distances,
-                  "WithinClusterMeanDist": WithinClusterMeanDist}
-        results[k] = result
-
-    # Step 5. Visualize k-means results of different k
-    print("Step 5. Visualize k-means results of different k")
-    for k in range(2, kmax):
-        result = results[k]
-        clusters = result["clusters"]
-        nearest_clusters = result["nearest_clusters"]
-        withinClusterMeanDist = result["WithinClusterMeanDist"]
-
-        plt.rc('font', size=8)
-        plot_cluster_result(plt, clusters, nearest_clusters, 1 - withinClusterMeanDist, wh, k, output_dir)
-        plt.show()
-
-    # Step 6. Write the whole results into a file
-    scales = [8, 16, 32]
-    file_name = "{}_Dataset_Clustering_Results.txt".format(dataset.NAME)
-    write_to_file(results, scales, file_name, output_dir)
+    # visulize_clustering_data(wh=wh, file_name=file_name)
+    #
+    # # Step 4. Do k-means for different k value, i.e. different clusters
+    # print("Step 4. Do k-means for different k value, i.e. different clusters")
+    # kmax = 10
+    # dist = np.mean
+    # results = {}
+    # for k in range(2, kmax):
+    #     clusters, nearest_clusters, distances = kmeans(wh, k, dist=dist, seed=2)
+    #     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]), nearest_clusters])
+    #     result = {"clusters": clusters,
+    #               "nearest_clusters": nearest_clusters,
+    #               "distances": distances,
+    #               "WithinClusterMeanDist": WithinClusterMeanDist}
+    #     results[k] = result
+    #
+    # # Step 5. Visualize k-means results of different k
+    # print("Step 5. Visualize k-means results of different k")
+    # for k in range(2, kmax):
+    #     result = results[k]
+    #     clusters = result["clusters"]
+    #     nearest_clusters = result["nearest_clusters"]
+    #     withinClusterMeanDist = result["WithinClusterMeanDist"]
+    #
+    #     plt.rc('font', size=8)
+    #     plot_cluster_result(plt, clusters, nearest_clusters, 1 - withinClusterMeanDist, wh, k, output_dir)
+    #     plt.show()
+    #
+    # # Step 6. Write the whole results into a file
+    # scales = [8, 16, 32]
+    # file_name = "{}_Dataset_Clustering_Results.txt".format(dataset.NAME)
+    # write_to_file(results, scales, file_name, output_dir)
 
 
 def read_classes(filename):
@@ -360,24 +361,65 @@ def read_classes(filename):
             classes += [line.strip('\n')]
     return classes
 
+
 # =========================================================================== #
 # Statistic
 # 2D to 1D: area, width, height
 # =========================================================================== #
-def statistic_2D_to_1D(wh):
-    area = wh[:, 0] * wh[:, 1]
-    print(area[:5])
-    print(wh[:5])
-    plt.hist(wh[:, 0], bins=np.arange(0, 1, 0.1))
-    plt.title("histogram")
+def statistic_2D_to_1D(wh, output_dir):
+    # 2D -> 1D
+    # Width
+    fig, ax = plt.subplots(figsize=(10, 10))
+    hist, bins = np.histogram(wh[:, 0], bins=np.arange(0, 1.1, 0.1))
+    # ax.barh(hist, bins, rwidth=0.5, stacked=True)
+    # ax.hist(wh[:, 0], bins=np.arange(0, 1.1, 0.1), rwidth=0.5, stacked=True)
+    ax.hist(wh[:, 0], bins=bins, rwidth=0.5, stacked=True)
+    fig.show()
+    ax.set_title("Width histogram")
+    ax.set_xticks(np.arange(0, 1, 0.1) + 0.05)
+    ax.set_xticklabels(["{:.2f}".format(x) for x in np.arange(0., 1, 0.1) + 0.05])
+    # ax.set_xticklabels(hist)
+    rects = ax.patches
+    for rect, label in zip(rects, hist):
+        ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + 5, label, ha='center', va='bottom')
+    fig.savefig(output_dir + "width_statistic.png")
     plt.show()
+
+    # Height
+    fig, ax = plt.subplots(figsize=(10, 10))
+    hist, bins = np.histogram(wh[:, 1], bins=np.arange(0, 1.1, 0.1))
+    ax.hist(wh[:, 1], bins=bins, rwidth=0.5, stacked=True)
+    fig.show()
+    ax.set_title("Height histogram")
+    ax.set_xticks(np.arange(0, 1, 0.1) + 0.05)
+    ax.set_xticklabels(["{:.2f}".format(x) for x in np.arange(0., 1, 0.1) + 0.05])
+    rects = ax.patches
+    for rect, label in zip(rects, hist):
+        ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + 5, label, ha='center', va='bottom')
+    fig.savefig(output_dir + "height_statistic.png")
+    plt.show()
+
+    # Area
+    fig, ax = plt.subplots(figsize=(10, 10))
+    area = wh[:, 0] * wh[:, 1]
+    hist, bins = np.histogram(area, bins=np.arange(0, 1.1, 0.1))
+    ax.hist(area, bins=bins, rwidth=0.5, stacked=True)
+    fig.show()
+    ax.set_title("Area histogram")
+    ax.set_xticks(np.arange(0, 1, 0.1) + 0.05)
+    ax.set_xticklabels(["{:.2f}".format(x) for x in np.arange(0., 1, 0.1) + 0.05])
+    rects = ax.patches
+    for rect, label in zip(rects, hist):
+        ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + 5, label, ha='center', va='bottom')
+    fig.savefig(output_dir + "area_statistic.png")
+    plt.show()
+    # print("statistic 2D to 1D")
 
 
 # =========================================================================== #
 if __name__ == "__main__":
     k_means_on_Dataset(COCO, OUTPUT_DIR + "COCO/")
 
-    # TODO
     # imgs, seen_labels = parse_annotation_coco(COCO.Annos_dir, COCO.LABELS, COCO.NAME)
     # print(seen_labels)
     # Readl COCO classes
